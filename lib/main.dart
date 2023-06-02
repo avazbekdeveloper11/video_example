@@ -28,80 +28,70 @@ class MyHome extends StatefulWidget {
 }
 
 class _MyHomeState extends State<MyHome> {
+  final String asset = 'assets/videos/vine.mp4';
   late VideoPlayerController controller;
 
   @override
   void initState() {
-    controller = VideoPlayerController.asset('assets/videos/vine.mp4');
-    controller.initialize().then((value) {
-      setState(() {});
-    });
-    loadVideoPlayer();
+    controller = VideoPlayerController.asset(asset)
+      ..addListener(() => setState(() {}))
+      ..setLooping(true)
+      ..initialize().then((value) => controller.play());
+
     super.initState();
   }
 
-  loadVideoPlayer() {
-    controller = VideoPlayerController.asset('assets/videos/vine.mp4');
-    controller.addListener(() {
-      setState(() {});
-    });
-    controller.initialize().then((value) {
-      setState(() {});
-    });
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final isMuted = controller.value.volume == 0;
     return Scaffold(
       // appBar: AppBar(
-      //   title: const Text("Video player"),
-      //   backgroundColor: Colors.redAccent,
+      //   title: const Text("Video"),
       // ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            AspectRatio(
-              aspectRatio: controller.value.aspectRatio,
-              child: VideoPlayer(controller),
+      body: Column(
+        children: [
+          VideoPlayerWidget(
+            controller: controller,
+          ),
+          const SizedBox(height: 32),
+          if (controller.value.isInitialized)
+            IconButton(
+              icon: Icon(isMuted ? Icons.volume_mute : Icons.volume_up),
+              onPressed: () => controller.setVolume(isMuted ? 1 : 0),
             ),
-            Text("Time: ${controller.value.duration}"),
-            VideoProgressIndicator(
-              controller,
-              allowScrubbing: true,
-              colors: const VideoProgressColors(
-                backgroundColor: Colors.redAccent,
-                playedColor: Colors.green,
-                bufferedColor: Colors.purple,
-              ),
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                IconButton(
-                  onPressed: () {
-                    if (controller.value.isPlaying) {
-                      controller.pause();
-                    } else {
-                      controller.play();
-                    }
-                    setState(() {});
-                  },
-                  icon: Icon(
-                    controller.value.isPlaying ? Icons.pause : Icons.play_arrow,
-                  ),
-                ),
-                IconButton(
-                  onPressed: () {
-                    controller.seekTo(const Duration(seconds: 0));
-                    setState(() {});
-                  },
-                  icon: const Icon(Icons.stop),
-                )
-              ],
-            )
-          ],
-        ),
+        ],
       ),
     );
   }
+}
+
+class VideoPlayerWidget extends StatelessWidget {
+  final VideoPlayerController controller;
+  const VideoPlayerWidget({super.key, required this.controller});
+
+  @override
+  Widget build(BuildContext context) => controller.value.isInitialized
+      ? Container(
+          alignment: Alignment.topCenter,
+          child: buildVideo(),
+        )
+      : const SizedBox(
+          height: 200,
+          child: Center(
+            child: CircularProgressIndicator(),
+          ),
+        );
+
+  Widget buildVideo() => buildVideoPlayer();
+
+  Widget buildVideoPlayer() => AspectRatio(
+        aspectRatio: controller.value.aspectRatio,
+        child: VideoPlayer(controller),
+      );
 }
